@@ -65,8 +65,10 @@ int apply(Stack *s_num, int op) {
 
 	return SUCCESS;
 }
-
-/*  */
+/* parse infix string
+   return result in f
+   return ERR / SUCCESS as status code
+*/
 int parse(char *s, float *f) {
 	Stack *s_num = createStack();	/* operand stack */
 	Stack *s_op = createStack();	/* operator stack */
@@ -97,21 +99,48 @@ int parse(char *s, float *f) {
 				}
 				s++;
 				break;
-			case MUL: case DIV:
-				/* push to opstack */
-				push(s_op, (void *)createOpNode(*s));
-				s++;
-				break;
-			case ADD: case SUB:
-				/* process any MUL/DIV on top of opstack before pushing to opstack */
-				while((node=pop(s_op))!=NULL && ((op=node->type)==MUL || op==DIV)) {
+			case MUL:
+				while((node=pop(s_op))!=NULL && ((op=node->type)!=BOPEN) && (op==DIV)) {
 					free(node);
 					if(!apply(s_num, op))
 						return ERR;
 				}
 				if(node)
 					push(s_op, (void *)node);
-				push(s_op, (void *)createOpNode(*s));
+				push(s_op, (void *) createOpNode(MUL));
+				s++;
+				break;
+			case DIV:
+				while((node=pop(s_op))!=NULL && ((op=node->type)!=BOPEN) && (op==MUL)) {
+					free(node);
+					if(!apply(s_num, op))
+						return ERR;
+				}
+				if(node)
+					push(s_op, (void *)node);
+				push(s_op, (void *) createOpNode(DIV));
+				s++;
+				break;
+			case ADD:
+				while((node=pop(s_op))!=NULL && ((op=node->type)!=BOPEN) && ((op==MUL) || (op==DIV) || (op==SUB))) {
+					free(node);
+					if(!apply(s_num, op))
+						return ERR;
+				}
+				if(node)
+					push(s_op, (void *)node);
+				push(s_op, (void *) createOpNode(ADD));
+				s++;
+				break;
+			case SUB:
+				while((node=pop(s_op))!=NULL && ((op=node->type)!=BOPEN) && ((op==MUL) || (op==DIV) || (op==ADD))) {
+					free(node);
+					if(!apply(s_num, op))
+						return ERR;
+				}
+				if(node)
+					push(s_op, (void *)node);
+				push(s_op, (void *) createOpNode(SUB));
 				s++;
 				break;
 			case '0': case '1': case '2': case '3': case '4':
